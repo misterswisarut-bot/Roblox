@@ -17,7 +17,7 @@ task.wait(0.5)
 
 
 local CONFIG = {
-    skipTimeout    = 20,
+    skipTimeout    = 30,
     afterSkipDelay = 2,
     afterBuyDelay  = 1,
     maxHopPages    = 3,
