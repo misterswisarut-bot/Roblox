@@ -81,7 +81,6 @@ local targetPets = {
     Unicorn = true,
     Raccoon = true,
     Butterfly = true,
-    Bunny = true,
 }
 
 
