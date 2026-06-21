@@ -22,8 +22,9 @@ local CONFIG = {
     afterBuyDelay  = 1,
     maxHopPages    = 3,
     httpTimeout    = 5,
+    hopTimeout     = 5, -- รอ teleport สูงสุด (วิ)
+    maxHopTry      = 5, -- ลอง hop สูงสุดกี่ครั้ง
 }
-
 
 local hopCount    = 0
 local usedServers = {}
@@ -31,7 +32,7 @@ local usedServers = {}
 
 
 local function autoSkipLoadingScreen()
-    print(" รอหน้า loading...")
+    print("รอหน้า loading...")
     local deadline = tick() + CONFIG.skipTimeout
 
     while tick() < deadline do
@@ -47,7 +48,7 @@ local function autoSkipLoadingScreen()
                 end
 
                 if text:find("click to skip") or text:find("loading player data") then
-                    print(" เจอหน้า loading:", obj.Text)
+                    print("เจอหน้า loading:", obj.Text)
 
                     local center = workspace.CurrentCamera.ViewportSize / 2
                     pcall(function()
@@ -60,7 +61,7 @@ local function autoSkipLoadingScreen()
                     repeat task.wait(0.5)
                     until not obj.Visible or not obj.Parent or tick() - t > 10
 
-                    print(" Loading หายแล้ว → รอ", CONFIG.afterSkipDelay, "วิ")
+                    print("Loading หายแล้ว → รอ", CONFIG.afterSkipDelay, "วิ")
                     task.wait(CONFIG.afterSkipDelay)
                     return true
                 end
@@ -69,7 +70,7 @@ local function autoSkipLoadingScreen()
         task.wait(0.5)
     end
 
-    warn(" ไม่เจอ loading → ข้ามไปเลย")
+    warn("ไม่เจอ loading → ข้ามไปเลย")
     return false
 end
 
@@ -78,8 +79,8 @@ autoSkipLoadingScreen()
 
 
 local targetPets = {
-    Unicorn = true,
-    Raccoon = true,
+    Unicorn   = true,
+    Raccoon   = true,
     Butterfly = true,
 }
 
@@ -113,7 +114,7 @@ end
 local function moveTo(pet)
     local part = pet:FindFirstChildWhichIsA("BasePart", true)
     if not part then
-        warn(" ไม่เจอ BasePart")
+        warn("ไม่เจอ BasePart")
         return false
     end
 
@@ -136,13 +137,13 @@ local function moveTo(pet)
 
     for i = 0, distance, stepSize do
         if not pet or not pet.Parent then
-            warn(" pet หายระหว่างเดิน")
+            warn("pet หายระหว่างเดิน")
             return false
         end
 
         stepCount += 1
         if stepCount > maxSteps then
-            warn(" เกิน maxSteps")
+            warn("เกิน maxSteps")
             break
         end
 
@@ -192,13 +193,13 @@ end
 
 
 local function hop()
-    print(" ไม่เจอ → hop server")
+    print("ไม่เจอ → hop server")
     hopCount += 1
 
     local servers = collectServers()
 
     if not servers or type(servers) ~= "table" or #servers == 0 then
-        warn(" fallback teleport")
+        warn("fallback teleport")
         TeleportService:Teleport(placeId, player)
         return
     end
@@ -211,44 +212,88 @@ local function hop()
     end
 
     if #available == 0 then
-        warn(" ล้าง blacklist")
+        warn("ล้าง blacklist")
         usedServers = {}
         available = servers
     end
 
     if #available == 0 then
-        warn(" ไม่มี server → fallback")
         TeleportService:Teleport(placeId, player)
         return
     end
 
-    local target = available[math.random(1, #available)]
+    for attempt = 1, CONFIG.maxHopTry do
+        if #available == 0 then break end
 
-    if not target then
-        warn(" target nil → fallback")
-        TeleportService:Teleport(placeId, player)
-        return
+        local target = available[math.random(1, #available)]
+        if not target then break end
+
+        -- เอาออกจาก available ก่อนลอง
+        for i, id in ipairs(available) do
+            if id == target then
+                table.remove(available, i)
+                break
+            end
+        end
+
+        usedServers[target] = true
+        print("Hop ครั้งที่", attempt, "→", target)
+
+        local done = false
+        local hopSuccess = false
+
+        task.spawn(function()
+            local ok, err = pcall(function()
+                TeleportService:TeleportToPlaceInstance(placeId, target, player)
+            end)
+
+            if not ok then
+                warn("Hop error:", err)
+
+
+                if err and (err:find("773") or err:find("restricted")) then
+                    warn("773 → fallback Teleport")
+                    pcall(function()
+                        TeleportService:Teleport(placeId, player)
+                    end)
+                    hopSuccess = true -- ถือว่าสำเร็จ (กำลัง teleport)
+                end
+            else
+                hopSuccess = true
+            end
+
+            done = true
+        end)
+
+        -- รอสูงสุด hopTimeout วิ
+        local elapsed = 0
+        while not done and elapsed < CONFIG.hopTimeout do
+            task.wait(0.1)
+            elapsed += 0.1
+        end
+
+        if hopSuccess then
+            print("Hop สำเร็จ | รวม:", hopCount, "ครั้ง")
+            return
+        end
+
+        if not done then
+            warn("Hop timeout ครั้งที่", attempt, "→ ลองใหม่")
+        end
+
+        task.wait(0.3)
     end
 
-    usedServers[target] = true
-    usedServers[game.JobId] = true
-
-    print(" Hop ไปยัง:", target, "| hop แล้ว:", hopCount, "ครั้ง")
-
-    local ok, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(placeId, target, player)
-    end)
-
-    if not ok then
-        warn(" hop failed:", err)
-        TeleportService:Teleport(placeId, player)
-    end
+    -- ลองหมดแล้ว → fallback
+    warn("ลองหมดแล้ว → fallback")
+    TeleportService:Teleport(placeId, player)
 end
+
+
+
 local function hasPetTool(petName)
     local backpack = player:FindFirstChild("Backpack")
-    if not backpack then
-        return false
-    end
+    if not backpack then return false end
 
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") and tool.Name:find(petName) then
@@ -258,19 +303,19 @@ local function hasPetTool(petName)
 
     return false
 end
+
 local function waitForPetTool(petName, timeout)
     local startTime = tick()
 
     repeat
-        if hasPetTool(petName) then
-            return true
-        end
-
+        if hasPetTool(petName) then return true end
         task.wait(0.5)
     until tick() - startTime >= timeout
 
     return false
 end
+
+
 
 local function firePrompt(pet)
     local prompt = pet:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -282,24 +327,20 @@ local function firePrompt(pet)
     end
 
     local petName = pet.Name
-
     fireproximityprompt(prompt)
-
     print("รอสัตว์เข้ากระเป๋า...")
 
     local success = waitForPetTool(petName, 30)
 
     if success then
-        print("ได้รับสัตว์แล้ว:", petName)
-
-        task.wait(2)
-
-        print("hop หา server ใหม่...")
-        hop()
+        print(" ได้รับสัตว์แล้ว:", petName)
+        task.wait(CONFIG.afterBuyDelay)
     else
-        warn("รอ 30 วิแล้วยังไม่เข้ากระเป๋า")
-        hop()
+        warn(" ไม่เข้ากระเป๋าใน 30 วิ")
     end
+
+    print("hop หา server ใหม่...")
+    hop()
 end
 
 
@@ -309,7 +350,7 @@ task.wait(2)
 local pet = findPet()
 
 if pet then
-    print(" เจอ:", pet.Name)
+    print("เจอ:", pet.Name)
 
     local ok = moveTo(pet)
 
