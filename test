@@ -34,41 +34,29 @@ local usedServers = {}
 
 
 local function sendWebhook(title, description, color)
-    if not CONFIG.webhookUrl or CONFIG.webhookUrl == "" then return end
+    print("📢 เรียก sendWebhook:", title)
 
-    -- นับ pet ในกระเป๋าทั้งหมด
-    local backpack = player:FindFirstChild("Backpack")
-    local petCount = {}
-
-    if backpack then
-        for _, tool in ipairs(backpack:GetChildren()) do
-            if tool:IsA("Tool") then
-                petCount[tool.Name] = (petCount[tool.Name] or 0) + 1
-            end
-        end
+    if not CONFIG.webhookUrl or CONFIG.webhookUrl == "" then
+        warn("❌ webhookUrl ว่างเปล่า")
+        return
     end
 
-    -- สร้างข้อความกระเป๋า
-    local bagText = ""
-    if next(petCount) then
-        for name, count in pairs(petCount) do
-            bagText = bagText .. "• `" .. name .. "` x" .. count .. "\n"
-        end
-    else
-        bagText = "ว่างเปล่า"
-    end
+    print("📢 URL:", CONFIG.webhookUrl)
 
     local data = HttpService:JSONEncode({
         embeds = {{
             title       = title,
-            description = description .. "\n\n🎒 **กระเป๋าตอนนี้:**\n" .. bagText,
+            description = description,
             color       = color or 3066993,
-            footer      = { text = "🐾Pet Grow a Garden" },
+            footer      = { text = "🐾 Pet Hunter • Grow a Garden" },
         }}
     })
 
-    pcall(function()
+    print("📢 กำลังส่ง...")
+
+    local ok, err = pcall(function()
         if syn and syn.request then
+            print("📢 ใช้ syn.request")
             syn.request({
                 Url     = CONFIG.webhookUrl,
                 Method  = "POST",
@@ -76,6 +64,7 @@ local function sendWebhook(title, description, color)
                 Body    = data
             })
         elseif request then
+            print("📢 ใช้ request")
             request({
                 Url     = CONFIG.webhookUrl,
                 Method  = "POST",
@@ -83,14 +72,23 @@ local function sendWebhook(title, description, color)
                 Body    = data
             })
         elseif http and http.request then
+            print("📢 ใช้ http.request")
             http.request({
                 Url     = CONFIG.webhookUrl,
                 Method  = "POST",
                 Headers = { ["Content-Type"] = "application/json" },
                 Body    = data
             })
+        else
+            warn("❌ ไม่มี request function")
         end
     end)
+
+    if not ok then
+        warn("❌ ส่งไม่ได้:", err)
+    else
+        print("✅ ส่งสำเร็จ")
+    end
 end
 
 
