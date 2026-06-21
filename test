@@ -1,4 +1,3 @@
-local webhookUrl = ... or ""
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -23,109 +22,12 @@ local CONFIG = {
     afterBuyDelay  = 1,
     maxHopPages    = 3,
     httpTimeout    = 5,
-    hopTimeout     = 5,
-    maxHopTry      = 5,
-    webhookUrl = webhookUrl,
+    hopTimeout     = 5, 
+    maxHopTry      = 5, 
 }
 
 local hopCount    = 0
 local usedServers = {}
-
-
-
-local function sendWebhook(title, description, color)
-    if not CONFIG.webhookUrl or CONFIG.webhookUrl == "" then return end
-
-    local backpack = player:FindFirstChild("Backpack")
-    local petCount = {}
-
-    if backpack then
-        for _, tool in ipairs(backpack:GetChildren()) do
-            if tool:IsA("Tool") then
-                petCount[tool.Name] = (petCount[tool.Name] or 0) + 1
-            end
-        end
-    end
-
-    local bagText = ""
-    if next(petCount) then
-        for name, count in pairs(petCount) do
-            bagText = bagText .. "• `" .. name .. "` x" .. count .. "\n"
-        end
-    else
-        bagText = "ว่างเปล่า"
-    end
-
-    local data = HttpService:JSONEncode({
-        embeds = {{
-            title       = title,
-            description = description .. "\n\n🎒 **กระเป๋าตอนนี้:**\n" .. bagText,
-            color       = color or 3066993,
-            footer      = { text = "🐾 Pet Hunter • Grow a Garden" },
-        }}
-    })
-
-    -- ✅ ลองทุก method เรียงลำดับ
-    local sent = false
-
-    if not sent then
-        pcall(function()
-            if syn and syn.request then
-                syn.request({
-                    Url     = CONFIG.webhookUrl,
-                    Method  = "POST",
-                    Headers = { ["Content-Type"] = "application/json" },
-                    Body    = data
-                })
-                sent = true
-                print("✅ ส่งด้วย syn.request")
-            end
-        end)
-    end
-
-    if not sent then
-        pcall(function()
-            if request then
-                request({
-                    Url     = CONFIG.webhookUrl,
-                    Method  = "POST",
-                    Headers = { ["Content-Type"] = "application/json" },
-                    Body    = data
-                })
-                sent = true
-                print("✅ ส่งด้วย request")
-            end
-        end)
-    end
-
-    if not sent then
-        pcall(function()
-            if http and http.request then
-                http.request({
-                    Url     = CONFIG.webhookUrl,
-                    Method  = "POST",
-                    Headers = { ["Content-Type"] = "application/json" },
-                    Body    = data
-                })
-                sent = true
-                print("✅ ส่งด้วย http.request")
-            end
-        end)
-    end
-
-    if not sent then
-        -- ✅ fallback สุดท้าย ใช้ HttpService
-        pcall(function()
-            HttpService:PostAsync(CONFIG.webhookUrl, data, Enum.HttpContentType.ApplicationJson)
-            sent = true
-            print("✅ ส่งด้วย HttpService:PostAsync")
-        end)
-    end
-
-    if not sent then
-        warn("❌ ส่ง webhook ไม่ได้เลย executor ไม่รองรับ")
-    end
-end
 
 
 
@@ -180,7 +82,6 @@ local targetPets = {
     Unicorn   = true,
     Raccoon   = true,
     GoldenDragonfly = true,
-    Bunny = true,
 }
 
 
@@ -190,7 +91,6 @@ local function getFolder()
     if not map then return nil end
     return map:FindFirstChild("WildPetSpawns")
 end
-
 
 
 local function findPet()
@@ -327,6 +227,7 @@ local function hop()
         local target = available[math.random(1, #available)]
         if not target then break end
 
+        -- เอาออกจาก available ก่อนลอง
         for i, id in ipairs(available) do
             if id == target then
                 table.remove(available, i)
@@ -347,12 +248,13 @@ local function hop()
 
             if not ok then
                 warn("Hop error:", err)
+
                 if err and (err:find("773") or err:find("restricted")) then
                     warn("773 → fallback Teleport")
                     pcall(function()
                         TeleportService:Teleport(placeId, player)
                     end)
-                    hopSuccess = true
+                    hopSuccess = true -- ถือว่าสำเร็จ (กำลัง teleport)
                 end
             else
                 hopSuccess = true
@@ -428,15 +330,6 @@ local function firePrompt(pet)
 
     if success then
         print(" ได้รับสัตว์แล้ว:", petName)
-
-
-        sendWebhook(
-            "✅ " .. player.Name .. " ได้รับ Pet!",
-            "**ผู้เล่น:** `" .. player.Name .. "`\n" ..
-            "**ได้รับ:** `" .. petName .. "`",
-            3066993 -- สีเขียว
-        )
-
         task.wait(CONFIG.afterBuyDelay)
     else
         warn(" ไม่เข้ากระเป๋าใน 30 วิ")
