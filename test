@@ -20,8 +20,8 @@ local CONFIG = {
     skipTimeout    = 20,
     afterSkipDelay = 2,
     afterBuyDelay  = 1,
-    maxHopPages    = 10,
-    httpTimeout    = 10,
+    maxHopPages    = 3,
+    httpTimeout    = 5,
 }
 
 
