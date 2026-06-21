@@ -81,6 +81,7 @@ local targetPets = {
     Unicorn = true,
     Raccoon = true,
     Butterfly = true,
+    Bunny = true,
 }
 
 
@@ -244,33 +245,62 @@ local function hop()
         TeleportService:Teleport(placeId, player)
     end
 end
+local function hasPetTool(petName)
+    local backpack = player:FindFirstChild("Backpack")
+    if not backpack then
+        return false
+    end
 
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name:find(petName) then
+            return true
+        end
+    end
+
+    return false
+end
+local function waitForPetTool(petName, timeout)
+    local startTime = tick()
+
+    repeat
+        if hasPetTool(petName) then
+            return true
+        end
+
+        task.wait(0.5)
+    until tick() - startTime >= timeout
+
+    return false
+end
 
 local function firePrompt(pet)
     local prompt = pet:FindFirstChildWhichIsA("ProximityPrompt", true)
+
     if not prompt then
-        warn(" ไม่เจอ ProximityPrompt → hop")
+        warn("ไม่เจอ ProximityPrompt → hop")
         hop()
         return
     end
 
-    local backpack = player:FindFirstChild("Backpack")
-    local countBefore = backpack and #backpack:GetChildren() or 0
+    local petName = pet.Name
 
     fireproximityprompt(prompt)
 
-    task.wait(CONFIG.afterBuyDelay)
+    print("รอสัตว์เข้ากระเป๋า...")
 
-    local countAfter = backpack and #backpack:GetChildren() or 0
+    local success = waitForPetTool(petName, 30)
 
-    if countAfter > countBefore then
-        print(" ซื้อสำเร็จจริง:", pet.Name)
+    if success then
+        print("ได้รับสัตว์แล้ว:", petName)
+
+        task.wait(2)
+
+        print("hop หา server ใหม่...")
+        hop()
     else
-        warn(" ซื้อไม่ติดจริง")
+        warn("รอ 30 วิแล้วยังไม่เข้ากระเป๋า")
+        hop()
     end
-
-    print(" hop หา server ใหม่...")
-    hop()
 end
 
 
