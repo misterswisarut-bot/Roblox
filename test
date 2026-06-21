@@ -25,6 +25,10 @@ local CONFIG = {
 }
 
 
+local hopCount    = 0
+local usedServers = {}
+
+
 
 local function autoSkipLoadingScreen()
     print(" รอหน้า loading...")
@@ -76,6 +80,7 @@ autoSkipLoadingScreen()
 local targetPets = {
     Unicorn = true,
     Raccoon = true,
+    Butterfly = true,
 }
 
 
@@ -113,10 +118,7 @@ local function moveTo(pet)
     end
 
     local partPos = part.Position
-    if not partPos then
-        warn(" ไม่เจอ Position")
-        return false
-    end
+    if not partPos then return false end
 
     local startPos  = rootPart.Position
     local targetPos = partPos + Vector3.new(0, 3, 0)
@@ -125,7 +127,7 @@ local function moveTo(pet)
     if not distance or distance == 0 then return true end
 
     local direction = (targetPos - startPos).Unit
-    if direction ~= direction then return true end -- nan check
+    if direction ~= direction then return true end
 
     local stepSize  = 3
     local stepDelay = 0.09
@@ -144,11 +146,7 @@ local function moveTo(pet)
             break
         end
 
-        local nextPos = startPos + direction * i
-        rootPart.AssemblyLinearVelocity = Vector3.zero
-        rootPart.AssemblyAngularVelocity = Vector3.zero
-        rootPart.CFrame = CFrame.new(nextPos)
-
+        rootPart.CFrame = CFrame.new(startPos + direction * i)
         task.wait(stepDelay)
     end
 
@@ -195,16 +193,48 @@ end
 
 local function hop()
     print(" ไม่เจอ → hop server")
+    hopCount += 1
 
     local servers = collectServers()
 
-    if not servers or #servers == 0 then
+    if not servers or type(servers) ~= "table" or #servers == 0 then
         warn(" fallback teleport")
         TeleportService:Teleport(placeId, player)
         return
     end
 
-    local target = servers[math.random(1, #servers)]
+    local available = {}
+    for _, id in ipairs(servers) do
+        if id and not usedServers[id] then
+            table.insert(available, id)
+        end
+    end
+
+    if #available == 0 then
+        warn(" ล้าง blacklist")
+        usedServers = {}
+        available = servers
+    end
+
+    if #available == 0 then
+        warn(" ไม่มี server → fallback")
+        TeleportService:Teleport(placeId, player)
+        return
+    end
+
+    local target = available[math.random(1, #available)]
+
+    if not target then
+        warn(" target nil → fallback")
+        TeleportService:Teleport(placeId, player)
+        return
+    end
+
+    usedServers[target] = true
+    usedServers[game.JobId] = true
+
+    print(" Hop ไปยัง:", target, "| hop แล้ว:", hopCount, "ครั้ง")
+
     local ok, err = pcall(function()
         TeleportService:TeleportToPlaceInstance(placeId, target, player)
     end)
@@ -216,7 +246,6 @@ local function hop()
 end
 
 
-
 local function firePrompt(pet)
     local prompt = pet:FindFirstChildWhichIsA("ProximityPrompt", true)
     if not prompt then
@@ -225,10 +254,21 @@ local function firePrompt(pet)
         return
     end
 
+    local backpack = player:FindFirstChild("Backpack")
+    local countBefore = backpack and #backpack:GetChildren() or 0
+
     fireproximityprompt(prompt)
-    print(" ซื้อแล้ว:", pet.Name)
 
     task.wait(CONFIG.afterBuyDelay)
+
+    local countAfter = backpack and #backpack:GetChildren() or 0
+
+    if countAfter > countBefore then
+        print(" ซื้อสำเร็จจริง:", pet.Name)
+    else
+        warn(" ซื้อไม่ติดจริง")
+    end
+
     print(" hop หา server ใหม่...")
     hop()
 end
