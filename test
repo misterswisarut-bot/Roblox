@@ -81,7 +81,7 @@ autoSkipLoadingScreen()
 local targetPets = {
     Unicorn   = true,
     Raccoon   = true,
-    Butterfly = true,
+    GoldenDragonfly = true,
 }
 
 
