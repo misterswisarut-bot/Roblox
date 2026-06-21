@@ -1,3 +1,4 @@
+local webhookUrl = ... or ""
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -14,7 +15,9 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 repeat task.wait(0.5) until character.Parent and humanoid.Parent and rootPart.Parent
 task.wait(0.5)
 
-
+---------------------------------------------------
+-- ⚙️ CONFIG
+---------------------------------------------------
 
 local CONFIG = {
     skipTimeout    = 60,
@@ -22,12 +25,75 @@ local CONFIG = {
     afterBuyDelay  = 1,
     maxHopPages    = 3,
     httpTimeout    = 5,
-    hopTimeout     = 5, -- รอ teleport สูงสุด (วิ)
-    maxHopTry      = 5, -- ลอง hop สูงสุดกี่ครั้ง
+    hopTimeout     = 5,
+    maxHopTry      = 5,
+    webhookUrl = webhookUrl,
 }
 
 local hopCount    = 0
 local usedServers = {}
+
+
+
+local function sendWebhook(title, description, color)
+    if not CONFIG.webhookUrl or CONFIG.webhookUrl == "" then return end
+
+    -- นับ pet ในกระเป๋าทั้งหมด
+    local backpack = player:FindFirstChild("Backpack")
+    local petCount = {}
+
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                petCount[tool.Name] = (petCount[tool.Name] or 0) + 1
+            end
+        end
+    end
+
+    -- สร้างข้อความกระเป๋า
+    local bagText = ""
+    if next(petCount) then
+        for name, count in pairs(petCount) do
+            bagText = bagText .. "• `" .. name .. "` x" .. count .. "\n"
+        end
+    else
+        bagText = "ว่างเปล่า"
+    end
+
+    local data = HttpService:JSONEncode({
+        embeds = {{
+            title       = title,
+            description = description .. "\n\n🎒 **กระเป๋าตอนนี้:**\n" .. bagText,
+            color       = color or 3066993,
+            footer      = { text = "🐾Pet Grow a Garden" },
+        }}
+    })
+
+    pcall(function()
+        if syn and syn.request then
+            syn.request({
+                Url     = CONFIG.webhookUrl,
+                Method  = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body    = data
+            })
+        elseif request then
+            request({
+                Url     = CONFIG.webhookUrl,
+                Method  = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body    = data
+            })
+        elseif http and http.request then
+            http.request({
+                Url     = CONFIG.webhookUrl,
+                Method  = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body    = data
+            })
+        end
+    end)
+end
 
 
 
@@ -228,7 +294,6 @@ local function hop()
         local target = available[math.random(1, #available)]
         if not target then break end
 
-        -- เอาออกจาก available ก่อนลอง
         for i, id in ipairs(available) do
             if id == target then
                 table.remove(available, i)
@@ -249,14 +314,12 @@ local function hop()
 
             if not ok then
                 warn("Hop error:", err)
-
-
                 if err and (err:find("773") or err:find("restricted")) then
                     warn("773 → fallback Teleport")
                     pcall(function()
                         TeleportService:Teleport(placeId, player)
                     end)
-                    hopSuccess = true -- ถือว่าสำเร็จ (กำลัง teleport)
+                    hopSuccess = true
                 end
             else
                 hopSuccess = true
@@ -265,7 +328,6 @@ local function hop()
             done = true
         end)
 
-        -- รอสูงสุด hopTimeout วิ
         local elapsed = 0
         while not done and elapsed < CONFIG.hopTimeout do
             task.wait(0.1)
@@ -284,7 +346,6 @@ local function hop()
         task.wait(0.3)
     end
 
-    -- ลองหมดแล้ว → fallback
     warn("ลองหมดแล้ว → fallback")
     TeleportService:Teleport(placeId, player)
 end
@@ -334,6 +395,15 @@ local function firePrompt(pet)
 
     if success then
         print(" ได้รับสัตว์แล้ว:", petName)
+
+
+        sendWebhook(
+            "✅ " .. player.Name .. " ได้รับ Pet!",
+            "**ผู้เล่น:** `" .. player.Name .. "`\n" ..
+            "**ได้รับ:** `" .. petName .. "`",
+            3066993 -- สีเขียว
+        )
+
         task.wait(CONFIG.afterBuyDelay)
     else
         warn(" ไม่เข้ากระเป๋าใน 30 วิ")
