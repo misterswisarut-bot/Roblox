@@ -15,9 +15,7 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 repeat task.wait(0.5) until character.Parent and humanoid.Parent and rootPart.Parent
 task.wait(0.5)
 
----------------------------------------------------
--- ⚙️ CONFIG
----------------------------------------------------
+
 
 local CONFIG = {
     skipTimeout    = 60,
@@ -148,6 +146,7 @@ local targetPets = {
     Unicorn   = true,
     Raccoon   = true,
     GoldenDragonfly = true,
+    Bunny = true,
 }
 
 
