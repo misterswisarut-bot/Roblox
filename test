@@ -65,7 +65,7 @@ local function autoSkipLoadingScreen()
         task.wait(0.5)
     end
 
-    warn("⚠️ ไม่เจอ loading → ข้ามไปเลย")
+    warn(" ไม่เจอ loading → ข้ามไปเลย")
     return false
 end
 
@@ -76,7 +76,6 @@ autoSkipLoadingScreen()
 local targetPets = {
     Unicorn = true,
     Raccoon = true,
-    Bunny = true,
 }
 
 
