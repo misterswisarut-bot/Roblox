@@ -105,7 +105,7 @@ local targetPets = {
         Rainbow = true,
     },
     GoldenDragonfly = {
-        Normal  = true,
+        Normal  = false,
         Big     = true,
         Huge    = true,
         Rainbow = true,
@@ -173,7 +173,6 @@ local function findPet()
     local folder = getFolder()
     if not folder then return nil end
 
-
     local sizeScore = {
         Huge   = 3,
         Big    = 2,
@@ -212,11 +211,8 @@ local function findPet()
 
         if not sizeOk or not typeOk then continue end
 
-
-        local size = isHuge and "Huge" or isBig and "Big" or "Normal"
+        local size  = isHuge and "Huge" or isBig and "Big" or "Normal"
         local score = sizeScore[size]
-
-
         if isRainbow then score = score + 10 end
 
         if score > bestScore then
@@ -297,12 +293,12 @@ local function collectServers()
         if not data then break end
 
         for _, v in ipairs(data.data) do
-            local notCurrent = v.id ~= game.JobId
-            local hasSlot    = v.playing < v.maxPlayers
-            -- ✅ กรองเฉพาะ Public server เท่านั้น
-            local isPublic   = v.serverType == nil or v.serverType == "Public"
+            local isPublic = v.serverType == nil or v.serverType == "Public"
 
-            if notCurrent and hasSlot and isPublic then
+            if v.id ~= game.JobId
+                and v.playing < v.maxPlayers
+                and isPublic
+            then
                 table.insert(list, v.id)
             end
         end
@@ -362,7 +358,7 @@ local function hop()
         usedServers[target] = true
         print("Hop ครั้งที่", attempt, "→", target)
 
-        local done = false
+        local done      = false
         local hopSuccess = false
 
         task.spawn(function()
@@ -373,10 +369,12 @@ local function hop()
             if not ok then
                 warn("Hop error:", err)
                 if err and (err:find("773") or err:find("restricted")) then
-    warn("773 restricted → blacklist แล้วลองใหม่")
-    usedServers[target] = true
-    -- ไม่ fallback ให้ loop ลองต่อเอง
-end
+                    warn("773 restricted → blacklist แล้วลองใหม่")
+                    usedServers[target] = true
+                else
+                    pcall(function()
+                        TeleportService:Teleport(placeId, player)
+                    end)
                     hopSuccess = true
                 end
             else
@@ -456,6 +454,7 @@ local function firePrompt(pet)
         task.wait(CONFIG.afterBuyDelay)
     else
         warn(" ไม่เข้ากระเป๋าใน 30 วิ")
+        task.wait(1)
     end
 
     print("hop หา server ใหม่...")
