@@ -93,19 +93,19 @@ local targetPets = {
         Rainbow = true,
     },
     BlackDragon = {
-        Normal  = false,
+        Normal  = true,
         Big     = true,
         Huge    = true,
         Rainbow = true,
     },
     IceSerpent = {
-        Normal  = false,
+        Normal  = true,
         Big     = true,
         Huge    = true,
         Rainbow = true,
     },
     GoldenDragonfly = {
-        Normal  = false,
+        Normal  = true,
         Big     = true,
         Huge    = true,
         Rainbow = true,
