@@ -460,10 +460,30 @@ local function firePrompt(pet)
     print("hop หา server ใหม่...")
     hop()
 end
+TeleportService.TeleportInitFailed:Connect(function(plr, teleportResult, errorMessage)
+    warn("TeleportInitFailed:", teleportResult, errorMessage)
 
+    task.wait(0.5)
+    for _, gui in ipairs(playerGui:GetChildren()) do
+        if not gui:IsA("ScreenGui") then continue end
+        for _, obj in ipairs(gui:GetDescendants()) do
+            if obj:IsA("TextButton") then
+                local t = obj.Text:lower()
+                if t == "ok" or t == "okay" or t == "close" then
+                    pcall(function() obj.MouseButton1Click:Fire() end)
+                    print("✅ ปิด popup 773 แล้ว")
+                end
+            end
+        end
+    end
 
-
+    task.wait(1)
+    print("🔄 hop ใหม่หลัง 773...")
+    hop()
+end)
 task.wait(2)
+
+
 
 local pet = findPet()
 
