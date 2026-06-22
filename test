@@ -63,7 +63,7 @@ local targetPets = {
         Rainbow = true,
     },
     Bunny = {
-        Normal  = false,
+        Normal  = true,
         Big     = true,
         Huge    = true,
         Rainbow = true,
