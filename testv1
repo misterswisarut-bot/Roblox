@@ -22,7 +22,7 @@ task.wait(0.5)
 local CONFIG = {
     skipTimeout    = 60,
     afterSkipDelay = 2,
-    afterBuyDelay  = 15,
+    afterBuyDelay  = afterBuyDelay = math.random(15,25),
     maxHopPages    = 3,
     httpTimeout    = 5,
     hopTimeout     = 5,
@@ -328,7 +328,6 @@ end
 -- 🚀 Hop
 ---------------------------------------------------
 
-local isTeleporting = false
 
 local isTeleporting = false
 
@@ -516,14 +515,21 @@ local function firePrompt(pet)
     local success = waitForPetTool(petName, 30)
 
     if success then
-        print("✅ ได้รับสัตว์แล้ว:", petName)
-        task.wait(CONFIG.afterBuyDelay)
-    else
-        warn("❌ ไม่เข้ากระเป๋าใน 30 วิ")
-    end
+    print("✅ ได้รับสัตว์แล้ว:", petName)
 
-    print("hop หา server ใหม่...")
-    hop()
+    task.wait(CONFIG.afterBuyDelay)
+
+    -- รอก่อน Hop
+    task.wait(math.random(5,10))
+else
+    warn("❌ ไม่เข้ากระเป๋าใน 30 วิ")
+
+    -- รอก่อน Hop
+    task.wait(math.random(5,10))
+end
+
+print("hop หา server ใหม่...")
+hop()
 end
 
 ---------------------------------------------------
