@@ -22,12 +22,95 @@ local CONFIG = {
     afterBuyDelay  = 1,
     maxHopPages    = 3,
     httpTimeout    = 5,
-    hopTimeout     = 5, 
-    maxHopTry      = 5, 
+    hopTimeout     = 5,
+    maxHopTry      = 5,
 }
 
 local hopCount    = 0
 local usedServers = {}
+
+
+
+local targetPets = {
+    Unicorn = {
+        Normal  = true,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Raccoon = {
+        Normal  = true,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Monkey = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Robin = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Frog = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Bunny = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Deer = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Bear = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Owl = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    Bee = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    BlackDragon = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    IceSerpent = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+    GoldenDragonfly = {
+        Normal  = false,
+        Big     = true,
+        Huge    = true,
+        Rainbow = true,
+    },
+}
 
 
 
@@ -78,14 +161,6 @@ autoSkipLoadingScreen()
 
 
 
-local targetPets = {
-    Unicorn   = true,
-    Raccoon   = true,
-    GoldenDragonfly = true,
-}
-
-
-
 local function getFolder()
     local map = workspace:FindFirstChild("Map")
     if not map then return nil end
@@ -93,19 +168,64 @@ local function getFolder()
 end
 
 
+
 local function findPet()
     local folder = getFolder()
     if not folder then return nil end
 
+
+    local sizeScore = {
+        Huge   = 3,
+        Big    = 2,
+        Normal = 1,
+    }
+
+    local bestPet   = nil
+    local bestScore = 0
+
     for _, pet in ipairs(folder:GetDescendants()) do
-        for name in pairs(targetPets) do
-            if pet.Name:find(name) then
-                return pet
+        local petName = pet.Name
+
+        local matchConfig = nil
+        for species, config in pairs(targetPets) do
+            if petName:find(species) then
+                matchConfig = config
+                break
             end
+        end
+
+        if not matchConfig then continue end
+
+        local isHuge    = petName:find("Huge") ~= nil
+        local isBig     = petName:find("Big") ~= nil and not isHuge
+        local isNormal  = not isHuge and not isBig
+        local isRainbow = petName:find("Rainbow") ~= nil
+
+        local sizeOk = false
+        if isHuge   and matchConfig.Huge   then sizeOk = true end
+        if isBig    and matchConfig.Big    then sizeOk = true end
+        if isNormal and matchConfig.Normal then sizeOk = true end
+
+        local typeOk = false
+        if isRainbow     and matchConfig.Rainbow then typeOk = true end
+        if not isRainbow and matchConfig.Normal  then typeOk = true end
+
+        if not sizeOk or not typeOk then continue end
+
+
+        local size = isHuge and "Huge" or isBig and "Big" or "Normal"
+        local score = sizeScore[size]
+
+
+        if isRainbow then score = score + 10 end
+
+        if score > bestScore then
+            bestScore = score
+            bestPet   = pet
         end
     end
 
-    return nil
+    return bestPet
 end
 
 
@@ -227,7 +347,6 @@ local function hop()
         local target = available[math.random(1, #available)]
         if not target then break end
 
-        -- เอาออกจาก available ก่อนลอง
         for i, id in ipairs(available) do
             if id == target then
                 table.remove(available, i)
@@ -248,13 +367,12 @@ local function hop()
 
             if not ok then
                 warn("Hop error:", err)
-
                 if err and (err:find("773") or err:find("restricted")) then
                     warn("773 → fallback Teleport")
                     pcall(function()
                         TeleportService:Teleport(placeId, player)
                     end)
-                    hopSuccess = true -- ถือว่าสำเร็จ (กำลัง teleport)
+                    hopSuccess = true
                 end
             else
                 hopSuccess = true
