@@ -333,15 +333,24 @@ local function hop()
     end
 
     if #available == 0 then
-        warn("ล้าง blacklist")
-        usedServers = {}
-        available = servers
+    warn("ไม่มีเซิร์ฟใหม่ → รอ 60 วิ")
+    task.wait(60)
+
+    servers = collectServers()
+
+    available = {}
+    for _, id in ipairs(servers) do
+        if id and not usedServers[id] then
+            table.insert(available, id)
+        end
     end
 
     if #available == 0 then
+        warn("ยังไม่มีเซิร์ฟใหม่ → Teleport ปกติ")
         TeleportService:Teleport(placeId, player)
         return
     end
+end
 
     for attempt = 1, CONFIG.maxHopTry do
         if #available == 0 then break end
