@@ -19,7 +19,7 @@ task.wait(0.5)
 local CONFIG = {
     skipTimeout    = 60,
     afterSkipDelay = 2,
-    afterBuyDelay  = 1,
+    afterBuyDelay  = 3, 
     maxHopPages    = 3,
     httpTimeout    = 5,
     hopTimeout     = 5,
@@ -450,12 +450,16 @@ local function firePrompt(pet)
     local success = waitForPetTool(petName, 30)
 
     if success then
-        print(" ได้รับสัตว์แล้ว:", petName)
-        task.wait(CONFIG.afterBuyDelay)
-    else
-        warn(" ไม่เข้ากระเป๋าใน 30 วิ")
-        task.wait(1)
-    end
+    print(" ได้รับสัตว์แล้ว:", petName)
+    task.wait(CONFIG.afterBuyDelay)
+else
+    warn(" ไม่เข้ากระเป๋าใน 30 วิ")
+    task.wait(1)
+end
+
+task.wait(3)
+print("hop หา server ใหม่...")
+hop()
 
     print("hop หา server ใหม่...")
     hop()
@@ -471,14 +475,14 @@ TeleportService.TeleportInitFailed:Connect(function(plr, teleportResult, errorMe
                 local t = obj.Text:lower()
                 if t == "ok" or t == "okay" or t == "close" then
                     pcall(function() obj.MouseButton1Click:Fire() end)
-                    print("✅ ปิด popup 773 แล้ว")
+                    print(" ปิด popup 773 แล้ว")
                 end
             end
         end
     end
 
     task.wait(1)
-    print("🔄 hop ใหม่หลัง 773...")
+    print(" hop ใหม่หลัง 773...")
     hop()
 end)
 task.wait(2)
