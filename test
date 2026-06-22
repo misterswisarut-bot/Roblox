@@ -461,6 +461,7 @@ local function firePrompt(pet)
     end
 
     print("hop หา server ใหม่...")
+    task.wait(30)
     hop()
 end
 
