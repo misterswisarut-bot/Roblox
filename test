@@ -297,7 +297,12 @@ local function collectServers()
         if not data then break end
 
         for _, v in ipairs(data.data) do
-            if v.id ~= game.JobId and v.playing < v.maxPlayers then
+            local notCurrent = v.id ~= game.JobId
+            local hasSlot    = v.playing < v.maxPlayers
+            -- ✅ กรองเฉพาะ Public server เท่านั้น
+            local isPublic   = v.serverType == nil or v.serverType == "Public"
+
+            if notCurrent and hasSlot and isPublic then
                 table.insert(list, v.id)
             end
         end
@@ -368,10 +373,10 @@ local function hop()
             if not ok then
                 warn("Hop error:", err)
                 if err and (err:find("773") or err:find("restricted")) then
-                    warn("773 → fallback Teleport")
-                    pcall(function()
-                        TeleportService:Teleport(placeId, player)
-                    end)
+    warn("773 restricted → blacklist แล้วลองใหม่")
+    usedServers[target] = true
+    -- ไม่ fallback ให้ loop ลองต่อเอง
+end
                     hopSuccess = true
                 end
             else
