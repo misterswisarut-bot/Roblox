@@ -450,13 +450,13 @@ local function firePrompt(pet)
     fireproximityprompt(prompt)
     print("รอสัตว์เข้ากระเป๋า...")
 
-    local success = waitForPetTool(petName, 8)
+    local success = waitForPetTool(petName, 30)
 
     if success then
         print(" ได้รับสัตว์แล้ว:", petName)
         task.wait(CONFIG.afterBuyDelay)
     else
-        warn(" ไม่เข้ากระเป๋าใน 8 วิ")
+        warn(" ไม่เข้ากระเป๋าใน 30 วิ")
         task.wait(1)
     end
 
